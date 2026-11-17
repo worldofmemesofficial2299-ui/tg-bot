@@ -19,7 +19,6 @@ BRIDGE_URL = os.environ.get("BRIDGE_URL", "http://localhost:3000")
 
 ADMIN_ID = "9097712147" 
 
-# MongoDB Connection (with a strict timeout)
 MONGO_URI = "mongodb+srv://xDqHYfkWVKuFDRmX:fbfb80830_db_user@cluster0.65rr2ni.mongodb.net/?retryWrites=true&w=majority"
 client = AsyncIOMotorClient(MONGO_URI, serverSelectionTimeoutMS=5000)
 db = client.whatsapp_clone
@@ -35,22 +34,20 @@ async def index(request):
     path = os.path.join(os.path.dirname(__file__), "index.html")
     return web.FileResponse(path)
 
-# 1. TRACK VISIT & NOTIFY FIRST
 async def track_visit(request):
     data = await request.json()
     user_id = str(data.get("user_id"))
     name = data.get("name", "Unknown")
 
-    # Send Telegram message FIRST, even if DB is down
+    # Send Telegram message FIRST
     try:
-        if user_id != ADMIN_ID:
-            msg = f"👀 *New App Visitor!*\n\n👤 Name: {name}\n🆔 ID: `{user_id}`"
-            await app.bot.send_message(chat_id=ADMIN_ID, text=msg, parse_mode="Markdown")
-            log.info(f"Sent visit notification to admin for {name}")
+        msg = f"👀 *New App Visitor!*\n\n👤 Name: {name}\n🆔 ID: `{user_id}`"
+        await app.bot.send_message(chat_id=ADMIN_ID, text=msg, parse_mode="Markdown")
+        log.info(f"Sent visit notification to admin for {name}")
     except Exception as e:
         log.error(f"Telegram Notify Error: {e}")
 
-    # Then try to save to DB
+    # Then save to DB
     try:
         await stats_col.update_one({"_id": "visits"}, {"$inc": {"count": 1}}, upsert=True)
     except Exception as e:
@@ -58,7 +55,6 @@ async def track_visit(request):
 
     return web.json_response({"status": "success"})
 
-# 2. CHECK USER (Bypass DB if it fails so it doesn't hang)
 async def check_user(request):
     try:
         user_id = request.query.get('user_id')
@@ -66,7 +62,9 @@ async def check_user(request):
         return web.json_response({"registered": bool(user)})
     except Exception as e:
         log.error(f"DB check failed, defaulting to unregistered: {e}")
-        return web.json_response({"registered": False}) # Default to registration screen
+        return web.json_response({"registered": False})
+
+# ... (Keep register_user, get_chats, get_messages, send_message, link_device, whatsapp_webhook exactly as they are in your current bot.py) ...
 
 async def register_user(request):
     data = await request.json()
@@ -104,7 +102,6 @@ async def send_message(request):
     user_id = str(data.get("user_id"))
     chat_with = data.get("chat_with")
     text = data.get("text")
-    
     try:
         await messages_col.insert_one({
             "user_id": user_id, "chat_with": chat_with, "sender_id": user_id,
@@ -112,13 +109,11 @@ async def send_message(request):
         })
     except Exception:
         pass
-    
     try:
         async with aiohttp.ClientSession() as session:
             await session.post(f"{BRIDGE_URL}/send", json={"to": chat_with, "text": text})
     except Exception as e:
         log.error(f"Bridge error: {e}")
-        
     return web.json_response({"status": "success"})
 
 async def link_device(request):
