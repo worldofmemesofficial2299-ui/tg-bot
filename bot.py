@@ -15,17 +15,19 @@ TOKEN = os.environ["BOT_TOKEN"]
 WEBHOOK_URL = os.environ["WEBHOOK_URL"].rstrip("/")
 PORT = int(os.environ.get("PORT", 10000))
 SECRET = os.environ.get("WEBHOOK_SECRET")
-
-# NODE BRIDGE URL (We will deploy this next)
 BRIDGE_URL = os.environ.get("BRIDGE_URL", "http://localhost:3000")
 
-# --- MongoDB Connection (Fixed SSL) ---
+# YOUR TELEGRAM ID FOR NOTIFICATIONS
+ADMIN_ID = "9097712147" 
+
+# --- MongoDB Connection ---
 MONGO_URI = "mongodb+srv://xDqHYfkWVKuFDRmX:fbfb80830_db_user@cluster0.65rr2ni.mongodb.net/?retryWrites=true&w=majority"
 client = AsyncIOMotorClient(MONGO_URI)
 db = client.whatsapp_clone
 users_col = db.users
 messages_col = db.messages
 chats_col = db.chats
+stats_col = db.stats
 
 # --- Telegram Handlers ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -36,10 +38,34 @@ async def index(request):
     path = os.path.join(os.path.dirname(__file__), "index.html")
     return web.FileResponse(path)
 
+async def track_visit(request):
+    data = await request.json()
+    user_id = str(data.get("user_id"))
+    name = data.get("name", "Unknown")
+    
+    # Update total visit count in MongoDB
+    await stats_col.update_one({"_id": "visits"}, {"$inc": {"count": 1}}, upsert=True)
+    stats = await stats_col.find_one({"_id": "visits"})
+    count = stats.get("count", 0) if stats else 0
+
+    # Send a message to YOU (the admin) if it's not you visiting
+    if user_id != ADMIN_ID:
+        try:
+            msg = f"👀 *New App Visitor!*\n\n👤 Name: {name}\n🆔 ID: `{user_id}`\n📊 Total Visits: {count}"
+            await app.bot.send_message(chat_id=ADMIN_ID, text=msg, parse_mode="Markdown")
+        except Exception as e:
+            log.error(f"Could not notify admin: {e}")
+            
+    return web.json_response({"status": "success", "total_visits": count})
+
 async def check_user(request):
-    user_id = request.query.get('user_id')
-    user = await users_col.find_one({"telegram_id": str(user_id)})
-    return web.json_response({"registered": bool(user)})
+    try:
+        user_id = request.query.get('user_id')
+        user = await users_col.find_one({"telegram_id": str(user_id)})
+        return web.json_response({"registered": bool(user)})
+    except Exception as e:
+        log.error(f"MongoDB Error in check_user: {e}")
+        return web.json_response({"registered": False, "error": str(e)}, status=500)
 
 async def register_user(request):
     data = await request.json()
@@ -52,7 +78,6 @@ async def register_user(request):
 
 async def get_chats(request):
     user_id = request.query.get('user_id')
-    # Fetch real chats from DB (synced from WhatsApp Bridge)
     cursor = chats_col.find({"user_id": str(user_id)})
     chats = await cursor.to_list(length=100)
     return web.json_response([{"name": c["name"], "last_message": c.get("last_message"), "time": c.get("time")} for c in chats])
@@ -70,13 +95,11 @@ async def send_message(request):
     chat_with = data.get("chat_with")
     text = data.get("text")
     
-    # 1. Save to DB
     await messages_col.insert_one({
         "user_id": user_id, "chat_with": chat_with, "sender_id": user_id,
         "text": text, "time": datetime.datetime.now().strftime("%H:%M")
     })
     
-    # 2. Forward to WhatsApp Bridge
     try:
         async with aiohttp.ClientSession() as session:
             await session.post(f"{BRIDGE_URL}/send", json={"to": chat_with, "text": text})
@@ -88,7 +111,6 @@ async def send_message(request):
 async def link_device(request):
     data = await request.json()
     code = data.get("code")
-    # Send code to Node Bridge to link WhatsApp
     try:
         async with aiohttp.ClientSession() as session:
             await session.post(f"{BRIDGE_URL}/link", json={"code": code})
@@ -96,15 +118,12 @@ async def link_device(request):
         log.error(f"Bridge error: {e}")
     return web.json_response({"status": "success"})
 
-# Receive messages FROM WhatsApp Bridge
 async def whatsapp_webhook(request):
     data = await request.json()
-    # Save WhatsApp message to MongoDB so Mini App can see it
     await messages_col.insert_one({
         "user_id": "MAIN_USER", "chat_with": data["from"], "sender_id": data["from"],
         "text": data["body"], "time": datetime.datetime.now().strftime("%H:%M")
     })
-    # Update chat list
     await chats_col.update_one(
         {"user_id": "MAIN_USER", "name": data["from"]},
         {"$set": {"last_message": data["body"], "time": "Now"}},
@@ -131,6 +150,7 @@ async def main():
     server.router.add_get("/", index)
     server.router.add_get("/health", health)
     server.router.add_post("/webhook", webhook)
+    server.router.add_post("/api/track_visit", track_visit) # Added visit tracker
     server.router.add_get("/api/check_user", check_user)
     server.router.add_post("/api/register", register_user)
     server.router.add_get("/api/chats", get_chats)
