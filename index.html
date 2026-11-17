@@ -81,7 +81,8 @@
     <!-- SPLASH SCREEN -->
     <div id="splash">
         <h1>WhatsApp</h1>
-        <div class="loader"></div>
+        <div class="loader" id="loader"></div>
+        <p id="error-msg" style="display:none; color: #ff4d4d; margin-top: 20px; text-align: center; padding: 0 20px;"></p>
     </div>
 
     <!-- REGISTRATION -->
@@ -96,8 +97,6 @@
                 <option value="+233">Ghana (+233)</option>
                 <option value="+44">United Kingdom (+44)</option>
                 <option value="+91">India (+91)</option>
-                <option value="+27">South Africa (+27)</option>
-                <option value="+254">Kenya (+254)</option>
             </select>
             <input type="tel" class="phone-input" id="phone-number" placeholder="Phone number">
         </div>
@@ -124,9 +123,7 @@
             <button class="filter-btn">Unread</button>
             <button class="filter-btn">Groups</button>
         </div>
-        <div class="chat-list" id="chat-list">
-            <!-- Chats will load here dynamically -->
-        </div>
+        <div class="chat-list" id="chat-list"></div>
         <div class="fab" onclick="document.getElementById('pair-screen').style.display='flex'">
             <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
         </div>
@@ -169,26 +166,46 @@
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.expand(); tg.setHeaderColor('#202c33');
+        tg.expand(); 
+        tg.setHeaderColor('#202c33');
         const user = tg.initDataUnsafe?.user || { id: 12345, first_name: "User" };
         let currentChatUser = "";
         const chatContainer = document.getElementById('chat-container');
 
-        // 1. INITIALIZATION
-        setTimeout(() => {
-            document.getElementById('splash').style.display = 'none';
-            checkRegistration();
-        }, 1500);
+        // 1. INITIALIZATION & VISITOR TRACKING
+        async function initApp() {
+            try {
+                // Track the visit and notify you on Telegram
+                await fetch('/api/track_visit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: user.id, name: user.first_name })
+                });
 
-        async function checkRegistration() {
-            const res = await fetch(`/api/check_user?user_id=${user.id}`);
-            const data = await res.json();
-            if (data.registered) {
-                showHomeScreen();
-            } else {
-                document.getElementById('registration').style.display = 'flex';
+                // Check if user is registered
+                const res = await fetch(`/api/check_user?user_id=${user.id}`);
+                if (!res.ok) throw new Error("Server error");
+                
+                const data = await res.json();
+                document.getElementById('splash').style.display = 'none';
+                
+                if (data.registered) {
+                    showHomeScreen();
+                } else {
+                    document.getElementById('registration').style.display = 'flex';
+                }
+            } catch (error) {
+                // If it fails, show an error instead of spinning forever
+                document.getElementById('loader').style.display = 'none';
+                const errMsg = document.getElementById('error-msg');
+                errMsg.style.display = 'block';
+                errMsg.innerText = "Connection failed. Please make sure your MongoDB network access is set to 0.0.0.0/0 and the server is running.";
+                console.error(error);
             }
         }
+
+        // Run initialization after a tiny delay for visual effect
+        setTimeout(initApp, 1000);
 
         function registerAccount() {
             tg.requestContact((status, contact) => {
@@ -202,7 +219,7 @@
             });
         }
 
-        async function showHomeScreen() {
+        function showHomeScreen() {
             document.getElementById('registration').style.display = 'none';
             document.getElementById('home').style.display = 'flex';
             loadChatList();
@@ -210,28 +227,30 @@
 
         // 2. CHAT LIST
         async function loadChatList() {
-            const res = await fetch(`/api/chats?user_id=${user.id}`);
-            const chats = await res.json();
-            const list = document.getElementById('chat-list');
-            list.innerHTML = '';
-            
-            if(chats.length === 0) {
-                list.innerHTML = '<p style="text-align:center; padding:20px; color:#8696a0;">No chats yet. Link WhatsApp to sync.</p>';
-                return;
-            }
+            try {
+                const res = await fetch(`/api/chats?user_id=${user.id}`);
+                const chats = await res.json();
+                const list = document.getElementById('chat-list');
+                list.innerHTML = '';
+                
+                if(chats.length === 0) {
+                    list.innerHTML = '<p style="text-align:center; padding:20px; color:#8696a0;">No chats yet. Link WhatsApp to sync.</p>';
+                    return;
+                }
 
-            chats.forEach(chat => {
-                const div = document.createElement('div');
-                div.className = 'chat-item';
-                div.onclick = () => openChat(chat.name, chat.name.charAt(0), '#00a884');
-                div.innerHTML = `
-                    <div class="avatar">${chat.name.charAt(0)}</div>
-                    <div class="chat-info">
-                        <div class="chat-name-row"><div class="chat-name">${chat.name}</div><div class="chat-time">${chat.time || ''}</div></div>
-                        <div class="chat-msg">${chat.last_message || 'Tap to chat'}</div>
-                    </div>`;
-                list.appendChild(div);
-            });
+                chats.forEach(chat => {
+                    const div = document.createElement('div');
+                    div.className = 'chat-item';
+                    div.onclick = () => openChat(chat.name, chat.name.charAt(0), '#00a884');
+                    div.innerHTML = `
+                        <div class="avatar">${chat.name.charAt(0)}</div>
+                        <div class="chat-info">
+                            <div class="chat-name-row"><div class="chat-name">${chat.name}</div><div class="chat-time">${chat.time || ''}</div></div>
+                            <div class="chat-msg">${chat.last_message || 'Tap to chat'}</div>
+                        </div>`;
+                    list.appendChild(div);
+                });
+            } catch(e) { console.log(e); }
         }
 
         // 3. CHAT VIEW
@@ -263,29 +282,4 @@
             const input = document.getElementById('message-input');
             const text = input.value.trim();
             if (!text) return;
-            input.value = ''; 
-            addMessageToScreen(text, "sent"); 
-
-            await fetch('/api/send', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: user.id, text: text, chat_with: currentChatUser })
-            });
-        }
-
-        function addMessageToScreen(text, type, time = null) {
-            const timeNow = time || new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            const div = document.createElement('div');
-            div.className = `message ${type}`;
-            div.innerHTML = `${text} <span class="time">${timeNow} ✓✓</span>`;
-            chatContainer.appendChild(div);
-            chatContainer.scrollTop = chatContainer.scrollHeight; 
-        }
-
-        // 4. LINK DEVICE
-        async function linkDevice() {
-            const code = document.getElementById('pairing-code').value;
-            if(code.length !== 8) return alert("Enter 8-digit code");
-            
-            // Tell Python to send this to the Node Bridge
-            await fetch('/api/link_device', {
-                method: 'P
+     
