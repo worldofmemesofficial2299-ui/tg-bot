@@ -3,115 +3,207 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WhatsApp Clone</title>
+    <title>WhatsApp</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        :root {
+            --bg-color: #0b141a;
+            --panel-bg: #111b21;
+            --header-bg: #202c33;
+            --text-main: #e9edef;
+            --text-muted: #8696a0;
+            --green-accent: #00a884;
+            --sent-bubble: #005c4b;
+            --received-bubble: #202c33;
+            --icon-color: #aebac1;
+        }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        body { background-color: #0b141a; color: #e9edef; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        body { background-color: var(--bg-color); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        svg { fill: var(--icon-color); width: 24px; height: 24px; cursor: pointer; }
+
+        /* --- REGISTRATION SCREEN --- */
+        #registration-screen { display: flex; flex-direction: column; height: 100%; padding: 30px 20px; background-color: var(--bg-color); text-align: center; }
+        #registration-screen h1 { color: var(--green-accent); margin-top: 50px; margin-bottom: 10px; font-size: 28px; }
+        #registration-screen p { color: var(--text-muted); font-size: 14px; margin-bottom: 40px; line-height: 1.5; }
+        .register-btn { background-color: var(--green-accent); color: #111b21; border: none; padding: 15px; border-radius: 25px; font-size: 16px; font-weight: bold; width: 100%; cursor: pointer; }
+
+        /* --- HOME SCREEN (Chat List) --- */
+        #home-screen { display: none; flex-direction: column; height: 100%; background-color: var(--panel-bg); position: relative; }
+        .header { background-color: var(--header-bg); padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; height: 60px; }
+        .header-title { font-size: 20px; font-weight: 600; color: var(--text-main); }
         
-        /* Common Header */
-        .header { background-color: #202c33; padding: 10px 15px; display: flex; align-items: center; border-bottom: 1px solid #222d34; z-index: 10; }
-        .avatar { width: 40px; height: 40px; background-color: #00a884; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; margin-right: 15px; color: #111b21; }
-        .header-info { display: flex; flex-direction: column; flex: 1; }
-        .header-name { font-size: 16px; font-weight: 600; }
-        .header-status { font-size: 12px; color: #8696a0; }
-        .back-btn { font-size: 20px; margin-right: 15px; cursor: pointer; color: #00a884; display: none; }
-
-        /* --- SCREEN 1: CHAT LIST --- */
-        #chat-list-screen { display: flex; flex-direction: column; height: 100%; background-color: #111b21; }
+        .search-bar { padding: 8px 15px; background-color: var(--panel-bg); }
+        .search-input { background-color: var(--header-bg); border-radius: 8px; padding: 10px 15px; display: flex; align-items: center; gap: 10px; }
+        .search-input input { background: transparent; border: none; color: var(--text-main); outline: none; width: 100%; font-size: 15px; }
+        
         .chat-list { flex: 1; overflow-y: auto; }
-        .chat-item { display: flex; padding: 12px 15px; border-bottom: 1px solid #222d34; align-items: center; cursor: pointer; }
-        .chat-item:active { background-color: #202c33; }
-        .chat-info { flex: 1; border-bottom: none; }
-        .chat-name-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
-        .chat-name { font-size: 16px; }
-        .chat-time { font-size: 12px; color: #8696a0; }
-        .chat-msg { font-size: 14px; color: #8696a0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px; }
+        .chat-item { display: flex; padding: 12px 15px; align-items: center; cursor: pointer; }
+        .chat-item:active { background-color: var(--header-bg); }
+        .avatar { width: 48px; height: 48px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 20px; color: white; margin-right: 15px; }
+        .chat-info { flex: 1; border-bottom: 1px solid #222d34; padding-bottom: 12px; display: flex; flex-direction: column; }
+        .chat-item:last-child .chat-info { border-bottom: none; }
+        .chat-name-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+        .chat-name { font-size: 17px; color: var(--text-main); }
+        .chat-time { font-size: 12px; color: var(--text-muted); }
+        .chat-msg { font-size: 14px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px; }
 
-        /* --- SCREEN 2: CHAT ROOM --- */
-        #chat-screen { display: none; flex-direction: column; height: 100%; position: absolute; top: 0; left: 0; width: 100%; }
-        .chat-container { flex: 1; overflow-y: auto; padding: 20px 15px; display: flex; flex-direction: column; gap: 10px; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-size: cover; }
-        .message { max-width: 80%; padding: 8px 12px; border-radius: 8px; font-size: 14px; line-height: 1.4; position: relative; word-wrap: break-word; }
-        .message.sent { background-color: #005c4b; align-self: flex-end; border-top-right-radius: 0; }
-        .message.received { background-color: #202c33; align-self: flex-start; border-top-left-radius: 0; }
-        .time { font-size: 11px; color: #8696a0; float: right; margin-top: 5px; margin-left: 10px; }
-        .input-area { background-color: #202c33; padding: 10px; display: flex; align-items: center; gap: 10px; }
-        .input-area input { flex: 1; background-color: #2a3942; border: none; padding: 12px 15px; border-radius: 20px; color: #e9edef; outline: none; font-size: 15px; }
-        .input-area button { background-color: #00a884; border: none; width: 45px; height: 45px; border-radius: 50%; color: #111b21; font-size: 20px; cursor: pointer; display: flex; justify-content: center; align-items: center; }
+        .fab { position: absolute; bottom: 20px; right: 20px; width: 60px; height: 60px; background-color: var(--green-accent); border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); cursor: pointer; }
+        .fab svg { fill: #111b21; width: 30px; height: 30px; }
+
+        /* --- CHAT SCREEN --- */
+        #chat-screen { display: none; flex-direction: column; height: 100%; position: absolute; top: 0; left: 0; width: 100%; z-index: 20; background-color: var(--bg-color); }
+        .chat-header { background-color: var(--header-bg); padding: 10px 15px; display: flex; align-items: center; height: 60px; gap: 15px; }
+        .chat-header-info { display: flex; flex-direction: column; flex: 1; }
+        .chat-header-name { font-size: 16px; color: var(--text-main); }
+        .chat-header-status { font-size: 12px; color: var(--text-muted); }
+        
+        .chat-container { flex: 1; overflow-y: auto; padding: 20px 15px; display: flex; flex-direction: column; gap: 5px; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-size: cover; background-blend-mode: overlay; background-color: #0b141a; }
+        
+        .message { max-width: 80%; padding: 6px 10px; border-radius: 8px; font-size: 14.5px; line-height: 1.4; position: relative; word-wrap: break-word; margin-bottom: 2px; }
+        .message.sent { background-color: var(--sent-bubble); align-self: flex-end; border-top-right-radius: 0; }
+        .message.received { background-color: var(--received-bubble); align-self: flex-start; border-top-left-radius: 0; }
+        .time { font-size: 11px; color: rgba(255,255,255,0.6); float: right; margin-top: 5px; margin-left: 10px; }
+        
+        .input-area { background-color: var(--header-bg); padding: 5px 10px; display: flex; align-items: center; gap: 8px; padding-bottom: 20px; /* safe area */ }
+        .input-box { flex: 1; background-color: var(--panel-bg); border-radius: 20px; display: flex; align-items: center; padding: 8px 15px; }
+        .input-box input { background: transparent; border: none; color: var(--text-main); outline: none; width: 100%; font-size: 16px; }
+        .send-btn { width: 45px; height: 45px; background-color: var(--green-accent); border-radius: 50%; display: flex; justify-content: center; align-items: center; border: none; cursor: pointer; }
+        .send-btn svg { fill: #111b21; width: 24px; height: 24px; margin-left: 3px;}
     </style>
 </head>
 <body>
-    <!-- HOME SCREEN (Chat List) -->
-    <div id="chat-list-screen">
+    <!-- 1. REGISTRATION SCREEN -->
+    <div id="registration-screen">
+        <h1>WhatsApp</h1>
+        <p>Enter your phone number to verify your account. Telegram will handle the verification securely.</p>
+        <button class="register-btn" onclick="requestPhone()">Share Phone Number</button>
+    </div>
+
+    <!-- 2. HOME SCREEN (Chat List) -->
+    <div id="home-screen">
         <div class="header">
-            <div class="header-name">WhatsApp</div>
+            <div class="header-title">WhatsApp</div>
+            <div style="display:flex; gap: 20px;">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+                <svg viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+            </div>
+        </div>
+        <div class="search-bar">
+            <div class="search-input">
+                <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                <input type="text" placeholder="Search or start new chat">
+            </div>
         </div>
         <div class="chat-list">
-            <!-- Dummy Contacts for now -->
-            <div class="chat-item" onclick="openChat('Alice', 'A')">
+            <div class="chat-item" onclick="openChat('Alice', 'A', '#ff7a59')">
                 <div class="avatar" style="background-color: #ff7a59;">A</div>
                 <div class="chat-info">
-                    <div class="chat-name-row">
-                        <div class="chat-name">Alice</div>
-                        <div class="chat-time">10:45 AM</div>
-                    </div>
+                    <div class="chat-name-row"><div class="chat-name">Alice</div><div class="chat-time">10:45 AM</div></div>
                     <div class="chat-msg">Hey! Did you see the new Telegram Mini App?</div>
                 </div>
             </div>
-            <div class="chat-item" onclick="openChat('Bob', 'B')">
+            <div class="chat-item" onclick="openChat('Bob', 'B', '#34b7f1')">
                 <div class="avatar" style="background-color: #34b7f1;">B</div>
                 <div class="chat-info">
-                    <div class="chat-name-row">
-                        <div class="chat-name">Bob</div>
-                        <div class="chat-time">Yesterday</div>
-                    </div>
+                    <div class="chat-name-row"><div class="chat-name">Bob</div><div class="chat-time">Yesterday</div></div>
                     <div class="chat-msg">Yes, it looks exactly like WhatsApp!</div>
                 </div>
             </div>
         </div>
+        <div class="fab">
+            <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        </div>
     </div>
 
-    <!-- CHAT ROOM SCREEN -->
+    <!-- 3. CHAT SCREEN -->
     <div id="chat-screen">
-        <div class="header">
-            <div class="back-btn" onclick="closeChat()">⬅</div>
-            <div class="avatar" id="chat-avatar">A</div>
-            <div class="header-info">
-                <div class="header-name" id="chat-name">Alice</div>
-                <div class="header-status">online</div>
+        <div class="chat-header">
+            <svg onclick="closeChat()" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+            <div class="avatar" id="chat-avatar" style="width: 40px; height: 40px; font-size: 16px;">A</div>
+            <div class="chat-header-info">
+                <div class="chat-header-name" id="chat-name">Alice</div>
+                <div class="chat-header-status">online</div>
+            </div>
+            <div style="display:flex; gap: 15px;">
+                <svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+                <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
             </div>
         </div>
         <div class="chat-container" id="chat-container"></div>
         <div class="input-area">
-            <input type="text" id="message-input" placeholder="Message" autocomplete="off">
-            <button onclick="sendMessage()">➤</button>
+            <div class="input-box">
+                <svg style="margin-right: 10px;" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg>
+                <input type="text" id="message-input" placeholder="Message" autocomplete="off">
+                <svg style="margin-left: 10px; transform: rotate(45deg);" viewBox="0 0 24 24"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/></svg>
+            </div>
+            <button class="send-btn" onclick="sendMessage()">
+                <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            </button>
         </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand(); 
+        tg.setHeaderColor('#202c33');
         
         const user = tg.initDataUnsafe?.user || { id: 12345, first_name: "User" };
         let currentChatUser = "";
         const chatContainer = document.getElementById('chat-container');
 
-        // Navigation
-        function openChat(name, letter) {
+        // --- REGISTRATION ---
+        function requestPhone() {
+            tg.requestContact((status, contact) => {
+                if (status === 'sent') {
+                    const phone = contact.phone_number;
+                    // Save to MongoDB via Python
+                    fetch('/api/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: user.id, phone: phone, name: user.first_name })
+                    }).then(() => {
+                        showHomeScreen();
+                    });
+                } else {
+                    tg.showAlert("You must share your phone number to use WhatsApp.");
+                }
+            });
+        }
+
+        function showHomeScreen() {
+            document.getElementById('registration-screen').style.display = 'none';
+            document.getElementById('home-screen').style.display = 'flex';
+        }
+
+        // Check if user is already registered on load
+        async function checkRegistration() {
+            const res = await fetch(`/api/check_user?user_id=${user.id}`);
+            const data = await res.json();
+            if (data.registered) {
+                showHomeScreen();
+            }
+        }
+        checkRegistration();
+
+        // --- NAVIGATION ---
+        function openChat(name, letter, color) {
             currentChatUser = name;
             document.getElementById('chat-name').innerText = name;
-            document.getElementById('chat-avatar').innerText = letter;
-            document.getElementById('chat-list-screen').style.display = 'none';
+            const avatar = document.getElementById('chat-avatar');
+            avatar.innerText = letter;
+            avatar.style.backgroundColor = color;
+            
+            document.getElementById('home-screen').style.display = 'none';
             document.getElementById('chat-screen').style.display = 'flex';
             loadMessages();
         }
 
         function closeChat() {
             document.getElementById('chat-screen').style.display = 'none';
-            document.getElementById('chat-list-screen').style.display = 'flex';
+            document.getElementById('home-screen').style.display = 'flex';
         }
 
-        // Messages
+        // --- MESSAGES ---
         async function loadMessages() {
             try {
                 const response = await fetch(`/api/messages?user_id=${user.id}&chat_with=${currentChatUser}`);
@@ -126,9 +218,7 @@
                         addMessageToScreen(msg.text, type, msg.time);
                     });
                 }
-            } catch (e) {
-                console.error(e);
-            }
+            } catch (e) { console.error(e); }
         }
 
         async function sendMessage() {
@@ -160,4 +250,4 @@
         });
     </script>
 </body>
-</html>
+                </html>
