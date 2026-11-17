@@ -9,66 +9,117 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         body { background-color: #0b141a; color: #e9edef; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         
-        /* WhatsApp Header */
-        .header { background-color: #202c33; padding: 10px 15px; display: flex; align-items: center; border-bottom: 1px solid #222d34; }
+        /* Common Header */
+        .header { background-color: #202c33; padding: 10px 15px; display: flex; align-items: center; border-bottom: 1px solid #222d34; z-index: 10; }
         .avatar { width: 40px; height: 40px; background-color: #00a884; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; margin-right: 15px; color: #111b21; }
-        .header-info { display: flex; flex-direction: column; }
+        .header-info { display: flex; flex-direction: column; flex: 1; }
         .header-name { font-size: 16px; font-weight: 600; }
         .header-status { font-size: 12px; color: #8696a0; }
+        .back-btn { font-size: 20px; margin-right: 15px; cursor: pointer; color: #00a884; display: none; }
 
-        /* Chat Area */
-        .chat-container { flex: 1; overflow-y: auto; padding: 20px 15px; display: flex; flex-direction: column; gap: 10px; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-size: cover; opacity: 0.9; }
-        
-        /* Message Bubbles */
+        /* --- SCREEN 1: CHAT LIST --- */
+        #chat-list-screen { display: flex; flex-direction: column; height: 100%; background-color: #111b21; }
+        .chat-list { flex: 1; overflow-y: auto; }
+        .chat-item { display: flex; padding: 12px 15px; border-bottom: 1px solid #222d34; align-items: center; cursor: pointer; }
+        .chat-item:active { background-color: #202c33; }
+        .chat-info { flex: 1; border-bottom: none; }
+        .chat-name-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .chat-name { font-size: 16px; }
+        .chat-time { font-size: 12px; color: #8696a0; }
+        .chat-msg { font-size: 14px; color: #8696a0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px; }
+
+        /* --- SCREEN 2: CHAT ROOM --- */
+        #chat-screen { display: none; flex-direction: column; height: 100%; position: absolute; top: 0; left: 0; width: 100%; }
+        .chat-container { flex: 1; overflow-y: auto; padding: 20px 15px; display: flex; flex-direction: column; gap: 10px; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-size: cover; }
         .message { max-width: 80%; padding: 8px 12px; border-radius: 8px; font-size: 14px; line-height: 1.4; position: relative; word-wrap: break-word; }
         .message.sent { background-color: #005c4b; align-self: flex-end; border-top-right-radius: 0; }
         .message.received { background-color: #202c33; align-self: flex-start; border-top-left-radius: 0; }
         .time { font-size: 11px; color: #8696a0; float: right; margin-top: 5px; margin-left: 10px; }
-
-        /* Input Area */
         .input-area { background-color: #202c33; padding: 10px; display: flex; align-items: center; gap: 10px; }
         .input-area input { flex: 1; background-color: #2a3942; border: none; padding: 12px 15px; border-radius: 20px; color: #e9edef; outline: none; font-size: 15px; }
         .input-area button { background-color: #00a884; border: none; width: 45px; height: 45px; border-radius: 50%; color: #111b21; font-size: 20px; cursor: pointer; display: flex; justify-content: center; align-items: center; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="avatar" id="user-avatar">U</div>
-        <div class="header-info">
-            <div class="header-name">WhatsApp Bot</div>
-            <div class="header-status" id="status">online</div>
+    <!-- HOME SCREEN (Chat List) -->
+    <div id="chat-list-screen">
+        <div class="header">
+            <div class="header-name">WhatsApp</div>
+        </div>
+        <div class="chat-list">
+            <!-- Dummy Contacts for now -->
+            <div class="chat-item" onclick="openChat('Alice', 'A')">
+                <div class="avatar" style="background-color: #ff7a59;">A</div>
+                <div class="chat-info">
+                    <div class="chat-name-row">
+                        <div class="chat-name">Alice</div>
+                        <div class="chat-time">10:45 AM</div>
+                    </div>
+                    <div class="chat-msg">Hey! Did you see the new Telegram Mini App?</div>
+                </div>
+            </div>
+            <div class="chat-item" onclick="openChat('Bob', 'B')">
+                <div class="avatar" style="background-color: #34b7f1;">B</div>
+                <div class="chat-info">
+                    <div class="chat-name-row">
+                        <div class="chat-name">Bob</div>
+                        <div class="chat-time">Yesterday</div>
+                    </div>
+                    <div class="chat-msg">Yes, it looks exactly like WhatsApp!</div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="chat-container" id="chat-container">
-        <!-- Messages will load here -->
-    </div>
-
-    <div class="input-area">
-        <input type="text" id="message-input" placeholder="Message" autocomplete="off">
-        <button onclick="sendMessage()">➤</button>
+    <!-- CHAT ROOM SCREEN -->
+    <div id="chat-screen">
+        <div class="header">
+            <div class="back-btn" onclick="closeChat()">⬅</div>
+            <div class="avatar" id="chat-avatar">A</div>
+            <div class="header-info">
+                <div class="header-name" id="chat-name">Alice</div>
+                <div class="header-status">online</div>
+            </div>
+        </div>
+        <div class="chat-container" id="chat-container"></div>
+        <div class="input-area">
+            <input type="text" id="message-input" placeholder="Message" autocomplete="off">
+            <button onclick="sendMessage()">➤</button>
+        </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand(); 
         
-        // Get Telegram User Info
         const user = tg.initDataUnsafe?.user || { id: 12345, first_name: "User" };
-        document.getElementById('user-avatar').innerText = user.first_name.charAt(0).toUpperCase();
-        
+        let currentChatUser = "";
         const chatContainer = document.getElementById('chat-container');
 
-        // 1. Load Messages from Database
+        // Navigation
+        function openChat(name, letter) {
+            currentChatUser = name;
+            document.getElementById('chat-name').innerText = name;
+            document.getElementById('chat-avatar').innerText = letter;
+            document.getElementById('chat-list-screen').style.display = 'none';
+            document.getElementById('chat-screen').style.display = 'flex';
+            loadMessages();
+        }
+
+        function closeChat() {
+            document.getElementById('chat-screen').style.display = 'none';
+            document.getElementById('chat-list-screen').style.display = 'flex';
+        }
+
+        // Messages
         async function loadMessages() {
             try {
-                const response = await fetch(`/api/messages?user_id=${user.id}`);
+                const response = await fetch(`/api/messages?user_id=${user.id}&chat_with=${currentChatUser}`);
                 const messages = await response.json();
                 
-                chatContainer.innerHTML = ''; // Clear current
-                
+                chatContainer.innerHTML = ''; 
                 if (messages.length === 0) {
-                    addMessageToScreen("Welcome to your WhatsApp clone! Send a message.", "received");
+                    addMessageToScreen("Say hi!", "received");
                 } else {
                     messages.forEach(msg => {
                         const type = msg.sender_id === user.id.toString() ? "sent" : "received";
@@ -76,45 +127,37 @@
                     });
                 }
             } catch (e) {
-                console.error("Error loading messages", e);
+                console.error(e);
             }
         }
 
-        // 2. Send Message
         async function sendMessage() {
             const input = document.getElementById('message-input');
             const text = input.value.trim();
             if (!text) return;
 
-            input.value = ''; // Clear input
-            addMessageToScreen(text, "sent"); // Show instantly
+            input.value = ''; 
+            addMessageToScreen(text, "sent"); 
 
-            // Send to Python backend
             await fetch('/api/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: user.id, text: text })
+                body: JSON.stringify({ user_id: user.id, text: text, chat_with: currentChatUser })
             });
         }
 
-        // 3. Helper to add message to screen
         function addMessageToScreen(text, type, time = null) {
             const timeNow = time || new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             const div = document.createElement('div');
             div.className = `message ${type}`;
             div.innerHTML = `${text} <span class="time">${timeNow} ✓✓</span>`;
             chatContainer.appendChild(div);
-            chatContainer.scrollTop = chatContainer.scrollHeight; // Scroll to bottom
+            chatContainer.scrollTop = chatContainer.scrollHeight; 
         }
 
-        // Allow pressing "Enter" to send
         document.getElementById('message-input').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') sendMessage();
         });
-
-        // Load messages on startup
-        loadMessages();
-        setInterval(loadMessages, 5000); // Refresh every 5 seconds
     </script>
 </body>
-          </html>
+</html>
