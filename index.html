@@ -7,56 +7,57 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
-            --bg-color: #0b141a;
-            --panel-bg: #111b21;
-            --header-bg: #202c33;
-            --text-main: #e9edef;
-            --text-muted: #8696a0;
-            --green-accent: #00a884;
-            --sent-bubble: #005c4b;
-            --received-bubble: #202c33;
-            --icon-color: #aebac1;
+            --bg-color: #0b141a; --panel-bg: #111b21; --header-bg: #202c33;
+            --text-main: #e9edef; --text-muted: #8696a0; --green-accent: #00a884;
+            --sent-bubble: #005c4b; --received-bubble: #202c33; --nav-bg: #0b141a;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        svg { fill: var(--icon-color); width: 24px; height: 24px; cursor: pointer; }
+        svg { fill: var(--text-muted); width: 24px; height: 24px; cursor: pointer; }
 
-        /* --- REGISTRATION SCREEN (WhatsApp Exact Clone) --- */
-        #registration-screen { display: flex; flex-direction: column; height: 100%; padding: 40px 20px; background-color: var(--bg-color); }
+        /* --- SPLASH SCREEN --- */
+        #splash { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; background-color: var(--bg-color); }
+        #splash h1 { color: var(--green-accent); font-size: 36px; margin-bottom: 20px; font-weight: bold; }
+        .loader { border: 4px solid var(--header-bg); border-top: 4px solid var(--green-accent); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* --- REGISTRATION --- */
+        #registration { display: none; flex-direction: column; height: 100%; padding: 40px 20px; background-color: var(--bg-color); }
         .reg-title { color: var(--green-accent); font-size: 32px; font-weight: bold; text-align: center; margin-bottom: 20px; margin-top: 30px; }
         .reg-subtitle { font-size: 18px; font-weight: 500; text-align: center; margin-bottom: 10px; }
-        .reg-desc { color: var(--text-muted); font-size: 14px; text-align: center; margin-bottom: 40px; line-height: 1.4; }
-        
+        .reg-desc { color: var(--text-muted); font-size: 14px; text-align: center; margin-bottom: 40px; }
         .input-group { display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 400px; margin: 0 auto 30px auto; }
-        .country-select { background-color: transparent; color: var(--text-main); border: none; border-bottom: 2px solid var(--green-accent); padding: 10px 0; font-size: 16px; outline: none; width: 100%; }
+        .country-select { background: transparent; color: var(--text-main); border: none; border-bottom: 2px solid var(--green-accent); padding: 10px 0; font-size: 16px; outline: none; width: 100%; }
         .country-select option { background-color: var(--panel-bg); }
-        .phone-input { background-color: transparent; color: var(--text-main); border: none; border-bottom: 2px solid var(--green-accent); padding: 10px 0; font-size: 18px; outline: none; width: 100%; letter-spacing: 1px; }
-        .phone-input::placeholder { color: var(--text-muted); }
-        
+        .phone-input { background: transparent; color: var(--text-main); border: none; border-bottom: 2px solid var(--green-accent); padding: 10px 0; font-size: 18px; outline: none; width: 100%; }
         .reg-btn { background-color: var(--green-accent); color: #111b21; border: none; padding: 14px; border-radius: 4px; font-size: 16px; font-weight: bold; width: 100%; max-width: 400px; margin: 0 auto; cursor: pointer; }
 
-        /* --- HOME SCREEN (Chat List) --- */
-        #home-screen { display: none; flex-direction: column; height: 100%; background-color: var(--panel-bg); position: relative; }
+        /* --- HOME SCREEN --- */
+        #home { display: none; flex-direction: column; height: 100%; background-color: var(--panel-bg); position: relative; }
         .header { background-color: var(--header-bg); padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; height: 60px; }
-        .header-title { font-size: 20px; font-weight: 600; color: var(--text-main); }
-        
+        .header-title { font-size: 22px; font-weight: 600; color: var(--text-main); }
         .search-bar { padding: 8px 15px; background-color: var(--panel-bg); }
-        .search-input { background-color: var(--header-bg); border-radius: 8px; padding: 10px 15px; display: flex; align-items: center; gap: 10px; }
+        .search-input { background-color: var(--header-bg); border-radius: 20px; padding: 10px 15px; display: flex; align-items: center; gap: 10px; }
         .search-input input { background: transparent; border: none; color: var(--text-main); outline: none; width: 100%; font-size: 15px; }
-        
-        .chat-list { flex: 1; overflow-y: auto; }
-        .chat-item { display: flex; padding: 12px 15px; align-items: center; cursor: pointer; }
+        .filters { display: flex; gap: 10px; padding: 5px 15px 10px 15px; background-color: var(--panel-bg); overflow-x: auto; }
+        .filter-btn { background-color: transparent; color: var(--text-muted); border: 1px solid var(--header-bg); padding: 6px 12px; border-radius: 15px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+        .filter-btn.active { background-color: rgba(0, 168, 132, 0.2); color: var(--green-accent); border-color: transparent; }
+        .chat-list { flex: 1; overflow-y: auto; padding-bottom: 60px; }
+        .chat-item { display: flex; padding: 12px 15px; align-items: center; cursor: pointer; border-bottom: 1px solid #222d34; }
         .chat-item:active { background-color: var(--header-bg); }
-        .avatar { width: 48px; height: 48px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 20px; color: white; margin-right: 15px; }
-        .chat-info { flex: 1; border-bottom: 1px solid #222d34; padding-bottom: 12px; display: flex; flex-direction: column; }
-        .chat-item:last-child .chat-info { border-bottom: none; }
+        .avatar { width: 48px; height: 48px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 20px; color: white; margin-right: 15px; background-color: #00a884; }
+        .chat-info { flex: 1; display: flex; flex-direction: column; }
         .chat-name-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
         .chat-name { font-size: 17px; color: var(--text-main); }
         .chat-time { font-size: 12px; color: var(--text-muted); }
-        .chat-msg { font-size: 14px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px; }
-
-        .fab { position: absolute; bottom: 20px; right: 20px; width: 60px; height: 60px; background-color: var(--green-accent); border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); cursor: pointer; }
-        .fab svg { fill: #111b21; width: 30px; height: 30px; }
+        .chat-msg { font-size: 14px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px; }
+        .fab { position: absolute; bottom: 70px; right: 20px; width: 55px; height: 55px; background-color: var(--green-accent); border-radius: 15px; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); cursor: pointer; z-index: 10; }
+        .fab svg { fill: #111b21; width: 28px; height: 28px; }
+        .bottom-nav { position: absolute; bottom: 0; left: 0; width: 100%; background-color: var(--nav-bg); display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid var(--header-bg); z-index: 10; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-muted); font-size: 11px; cursor: pointer; }
+        .nav-item.active { color: var(--text-main); }
+        .nav-icon { width: 24px; height: 24px; fill: var(--text-muted); }
+        .nav-item.active .nav-icon { fill: var(--text-main); }
 
         /* --- CHAT SCREEN --- */
         #chat-screen { display: none; flex-direction: column; height: 100%; position: absolute; top: 0; left: 0; width: 100%; z-index: 20; background-color: var(--bg-color); }
@@ -64,14 +65,11 @@
         .chat-header-info { display: flex; flex-direction: column; flex: 1; }
         .chat-header-name { font-size: 16px; color: var(--text-main); }
         .chat-header-status { font-size: 12px; color: var(--text-muted); }
-        
-        .chat-container { flex: 1; overflow-y: auto; padding: 20px 15px; display: flex; flex-direction: column; gap: 5px; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-size: cover; background-blend-mode: overlay; background-color: #0b141a; }
-        
+        .chat-container { flex: 1; overflow-y: auto; padding: 20px 15px; display: flex; flex-direction: column; gap: 5px; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-size: cover; background-color: #0b141a; }
         .message { max-width: 80%; padding: 6px 10px; border-radius: 8px; font-size: 14.5px; line-height: 1.4; position: relative; word-wrap: break-word; margin-bottom: 2px; }
         .message.sent { background-color: var(--sent-bubble); align-self: flex-end; border-top-right-radius: 0; }
         .message.received { background-color: var(--received-bubble); align-self: flex-start; border-top-left-radius: 0; }
         .time { font-size: 11px; color: rgba(255,255,255,0.6); float: right; margin-top: 5px; margin-left: 10px; }
-        
         .input-area { background-color: var(--header-bg); padding: 5px 10px; display: flex; align-items: center; gap: 8px; padding-bottom: 20px; }
         .input-box { flex: 1; background-color: var(--panel-bg); border-radius: 20px; display: flex; align-items: center; padding: 8px 15px; }
         .input-box input { background: transparent; border: none; color: var(--text-main); outline: none; width: 100%; font-size: 16px; }
@@ -80,31 +78,34 @@
     </style>
 </head>
 <body>
-    <!-- 1. REGISTRATION SCREEN (Exact WhatsApp UI) -->
-    <div id="registration-screen">
+    <!-- SPLASH SCREEN -->
+    <div id="splash">
+        <h1>WhatsApp</h1>
+        <div class="loader"></div>
+    </div>
+
+    <!-- REGISTRATION -->
+    <div id="registration">
         <div class="reg-title">WhatsApp</div>
         <div class="reg-subtitle">Verify your phone number</div>
         <div class="reg-desc">WhatsApp will need to verify your phone number.<br><span style="color: #00a884;">What's my number?</span></div>
-
         <div class="input-group">
-            <!-- Country Dropdown -->
-            <select class="country-select">
-                <option>United States (+1)</option>
-                <option>Nigeria (+234)</option>
-                <option>Ghana (+233)</option>
-                <option>United Kingdom (+44)</option>
-                <option>India (+91)</option>
+            <select class="country-select" id="country-code">
+                <option value="+1">United States (+1)</option>
+                <option value="+234">Nigeria (+234)</option>
+                <option value="+233">Ghana (+233)</option>
+                <option value="+44">United Kingdom (+44)</option>
+                <option value="+91">India (+91)</option>
+                <option value="+27">South Africa (+27)</option>
+                <option value="+254">Kenya (+254)</option>
             </select>
-            <!-- Phone Number Input -->
-            <input type="tel" class="phone-input" placeholder="Phone number" readonly>
+            <input type="tel" class="phone-input" id="phone-number" placeholder="Phone number">
         </div>
-
-        <!-- Button triggers Telegram Popup -->
-        <button class="reg-btn" onclick="requestPhone()">Next</button>
+        <button class="reg-btn" onclick="registerAccount()">Next</button>
     </div>
 
-    <!-- 2. HOME SCREEN (Chat List) -->
-    <div id="home-screen">
+    <!-- HOME SCREEN -->
+    <div id="home">
         <div class="header">
             <div class="header-title">WhatsApp</div>
             <div style="display:flex; gap: 20px;">
@@ -115,39 +116,43 @@
         <div class="search-bar">
             <div class="search-input">
                 <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-                <input type="text" placeholder="Search or start new chat">
+                <input type="text" placeholder="Ask Meta AI or Search">
             </div>
         </div>
-        <div class="chat-list">
-            <div class="chat-item" onclick="openChat('Alice', 'A', '#ff7a59')">
-                <div class="avatar" style="background-color: #ff7a59;">A</div>
-                <div class="chat-info">
-                    <div class="chat-name-row"><div class="chat-name">Alice</div><div class="chat-time">10:45 AM</div></div>
-                    <div class="chat-msg">Hey! Did you see the new Telegram Mini App?</div>
-                </div>
-            </div>
-            <div class="chat-item" onclick="openChat('Bob', 'B', '#34b7f1')">
-                <div class="avatar" style="background-color: #34b7f1;">B</div>
-                <div class="chat-info">
-                    <div class="chat-name-row"><div class="chat-name">Bob</div><div class="chat-time">Yesterday</div></div>
-                    <div class="chat-msg">Yes, it looks exactly like WhatsApp!</div>
-                </div>
-            </div>
+        <div class="filters">
+            <button class="filter-btn active">All</button>
+            <button class="filter-btn">Unread</button>
+            <button class="filter-btn">Groups</button>
         </div>
-        <div class="fab">
+        <div class="chat-list" id="chat-list">
+            <!-- Chats will load here dynamically -->
+        </div>
+        <div class="fab" onclick="document.getElementById('pair-screen').style.display='flex'">
             <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        </div>
+        <div class="bottom-nav">
+            <div class="nav-item active"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg><span>Chats</span></div>
+            <div class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg><span>Updates</span></div>
+            <div class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg><span>Communities</span></div>
+            <div class="nav-item"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg><span>Calls</span></div>
         </div>
     </div>
 
-    <!-- 3. CHAT SCREEN -->
+    <!-- PAIR DEVICE SCREEN -->
+    <div id="pair-screen" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background-color:var(--bg-color); z-index: 50; flex-direction: column; padding: 20px; text-align:center;">
+        <svg onclick="document.getElementById('pair-screen').style.display='none'" style="align-self: flex-start;" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        <h2 style="margin-top:30px;">Link with phone number</h2>
+        <p style="color:var(--text-muted); margin: 15px 0; font-size:14px;">Enter the code shown on your phone's WhatsApp under Linked Devices.</p>
+        <input type="text" id="pairing-code" placeholder="8-digit code" style="background:var(--panel-bg); border:1px solid var(--green-accent); color:white; padding:15px; border-radius:8px; font-size:20px; text-align:center; width:80%; margin: 0 auto;">
+        <button class="reg-btn" style="margin-top: 20px;" onclick="linkDevice()">Link Device</button>
+    </div>
+
+    <!-- CHAT SCREEN -->
     <div id="chat-screen">
         <div class="chat-header">
             <svg onclick="closeChat()" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
             <div class="avatar" id="chat-avatar" style="width: 40px; height: 40px; font-size: 16px;">A</div>
-            <div class="chat-header-info">
-                <div class="chat-header-name" id="chat-name">Alice</div>
-                <div class="chat-header-status">online</div>
-            </div>
+            <div class="chat-header-info"><div class="chat-header-name" id="chat-name">Alice</div><div class="chat-header-status">online</div></div>
             <div style="display:flex; gap: 15px;">
                 <svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
                 <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
@@ -156,109 +161,113 @@
         <div class="chat-container" id="chat-container"></div>
         <div class="input-area">
             <div class="input-box">
-                <svg style="margin-right: 10px;" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg>
                 <input type="text" id="message-input" placeholder="Message" autocomplete="off">
-                <svg style="margin-left: 10px; transform: rotate(45deg);" viewBox="0 0 24 24"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/></svg>
             </div>
-            <button class="send-btn" onclick="sendMessage()">
-                <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-            </button>
+            <button class="send-btn" onclick="sendMessage()"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
         </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.expand(); 
-        tg.setHeaderColor('#202c33');
-        
+        tg.expand(); tg.setHeaderColor('#202c33');
         const user = tg.initDataUnsafe?.user || { id: 12345, first_name: "User" };
         let currentChatUser = "";
         const chatContainer = document.getElementById('chat-container');
 
-        // --- REGISTRATION ---
-        function requestPhone() {
-            // This opens the native Telegram popup you saw in your screenshot
-            tg.requestContact((status, contact) => {
-                if (status === 'sent') {
-                    const phone = contact.phone_number;
-                    
-                    // Save to MongoDB via Python
-                    fetch('/api/register', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ user_id: user.id, phone: phone, name: user.first_name })
-                    }).then(() => {
-                        showHomeScreen();
-                    });
-                } else {
-                    // If they click cancel, we just do nothing (no ugly alert popup)
-                    console.log("User cancelled contact sharing");
-                }
-            });
-        }
+        // 1. INITIALIZATION
+        setTimeout(() => {
+            document.getElementById('splash').style.display = 'none';
+            checkRegistration();
+        }, 1500);
 
-        function showHomeScreen() {
-            document.getElementById('registration-screen').style.display = 'none';
-            document.getElementById('home-screen').style.display = 'flex';
-        }
-
-        // Check if user is already registered on load
         async function checkRegistration() {
             const res = await fetch(`/api/check_user?user_id=${user.id}`);
             const data = await res.json();
             if (data.registered) {
                 showHomeScreen();
+            } else {
+                document.getElementById('registration').style.display = 'flex';
             }
         }
-        checkRegistration();
 
-        // --- NAVIGATION ---
-        function openChat(name, letter, color) {
+        function registerAccount() {
+            tg.requestContact((status, contact) => {
+                if (status === 'sent') {
+                    const phone = contact.phone_number;
+                    fetch('/api/register', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: user.id, phone: phone, name: user.first_name })
+                    }).then(() => showHomeScreen());
+                }
+            });
+        }
+
+        async function showHomeScreen() {
+            document.getElementById('registration').style.display = 'none';
+            document.getElementById('home').style.display = 'flex';
+            loadChatList();
+        }
+
+        // 2. CHAT LIST
+        async function loadChatList() {
+            const res = await fetch(`/api/chats?user_id=${user.id}`);
+            const chats = await res.json();
+            const list = document.getElementById('chat-list');
+            list.innerHTML = '';
+            
+            if(chats.length === 0) {
+                list.innerHTML = '<p style="text-align:center; padding:20px; color:#8696a0;">No chats yet. Link WhatsApp to sync.</p>';
+                return;
+            }
+
+            chats.forEach(chat => {
+                const div = document.createElement('div');
+                div.className = 'chat-item';
+                div.onclick = () => openChat(chat.name, chat.name.charAt(0), '#00a884');
+                div.innerHTML = `
+                    <div class="avatar">${chat.name.charAt(0)}</div>
+                    <div class="chat-info">
+                        <div class="chat-name-row"><div class="chat-name">${chat.name}</div><div class="chat-time">${chat.time || ''}</div></div>
+                        <div class="chat-msg">${chat.last_message || 'Tap to chat'}</div>
+                    </div>`;
+                list.appendChild(div);
+            });
+        }
+
+        // 3. CHAT VIEW
+        async function openChat(name, letter, color) {
             currentChatUser = name;
             document.getElementById('chat-name').innerText = name;
-            const avatar = document.getElementById('chat-avatar');
-            avatar.innerText = letter;
-            avatar.style.backgroundColor = color;
-            
-            document.getElementById('home-screen').style.display = 'none';
+            document.getElementById('chat-avatar').innerText = letter;
+            document.getElementById('home').style.display = 'none';
             document.getElementById('chat-screen').style.display = 'flex';
             loadMessages();
         }
 
         function closeChat() {
             document.getElementById('chat-screen').style.display = 'none';
-            document.getElementById('home-screen').style.display = 'flex';
+            document.getElementById('home').style.display = 'flex';
         }
 
-        // --- MESSAGES ---
         async function loadMessages() {
-            try {
-                const response = await fetch(`/api/messages?user_id=${user.id}&chat_with=${currentChatUser}`);
-                const messages = await response.json();
-                
-                chatContainer.innerHTML = ''; 
-                if (messages.length === 0) {
-                    addMessageToScreen("Say hi!", "received");
-                } else {
-                    messages.forEach(msg => {
-                        const type = msg.sender_id === user.id.toString() ? "sent" : "received";
-                        addMessageToScreen(msg.text, type, msg.time);
-                    });
-                }
-            } catch (e) { console.error(e); }
+            const res = await fetch(`/api/messages?user_id=${user.id}&chat_with=${currentChatUser}`);
+            const messages = await res.json();
+            chatContainer.innerHTML = ''; 
+            messages.forEach(msg => {
+                const type = msg.sender_id === user.id.toString() ? "sent" : "received";
+                addMessageToScreen(msg.text, type, msg.time);
+            });
         }
 
         async function sendMessage() {
             const input = document.getElementById('message-input');
             const text = input.value.trim();
             if (!text) return;
-
             input.value = ''; 
             addMessageToScreen(text, "sent"); 
 
             await fetch('/api/send', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id: user.id, text: text, chat_with: currentChatUser })
             });
         }
@@ -272,9 +281,11 @@
             chatContainer.scrollTop = chatContainer.scrollHeight; 
         }
 
-        document.getElementById('message-input').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') sendMessage();
-        });
-    </script>
-</body>
-    </html>
+        // 4. LINK DEVICE
+        async function linkDevice() {
+            const code = document.getElementById('pairing-code').value;
+            if(code.length !== 8) return alert("Enter 8-digit code");
+            
+            // Tell Python to send this to the Node Bridge
+            await fetch('/api/link_device', {
+                method: 'P
