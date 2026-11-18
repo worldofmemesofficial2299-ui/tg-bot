@@ -10,13 +10,13 @@ from motor.motor_asyncio import AsyncIOMotorClient
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("bot")
 
-TOKEN = os.environ["BOT_TOKEN"]
-WEBHOOK_URL = os.environ["WEBHOOK_URL"].rstrip("/")
+TOKEN = os.environ.get("BOT_TOKEN", "")
+WEBHOOK_URL = os.environ.get("WEBHOOK_URL", "").rstrip("/")
 PORT = int(os.environ.get("PORT", 10000))
-SECRET = os.environ.get("WEBHOOK_SECRET")
+SECRET = os.environ.get("WEBHOOK_SECRET", "")
 ADMIN_ID = "9097712147" 
 
-# --- MongoDB ---
+# --- MongoDB Setup ---
 MONGO_URI = "mongodb+srv://xDqHYfkWVKuFDRmX:fbfb80830_db_user@cluster0.65rr2ni.mongodb.net/?retryWrites=true&w=majority"
 client = AsyncIOMotorClient(MONGO_URI, serverSelectionTimeoutMS=5000)
 db = client.whatsapp_clone
@@ -29,7 +29,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if str(user.id) != ADMIN_ID:
         try:
             await app.bot.send_message(chat_id=ADMIN_ID, text=f"🚀 *Bot Started!*\n👤 {user.first_name}\n🆔 `{user.id}`", parse_mode="Markdown")
-        except: pass
+        except:
+            pass
 
 # ==========================================
 # THE 100% WHATSAPP CLONE UI (EMBEDDED)
@@ -313,8 +314,10 @@ async def track_visit(request):
     name = data.get("name", "Unknown")
     try:
         if user_id != ADMIN_ID:
-            await app.bot.send_message(chat_id=ADMIN_ID, text=f"👀 *New App Visitor!*\n👤 {name}\n🆔 `{user_id}`", parse_mode="Markdown")
-    except Exception as e: log.error(e)
+            msg_text = f"👀 *New App Visitor!*\n👤 {name}\n🆔 `{user_id}`"
+            await app.bot.send_message(chat_id=ADMIN_ID, text=msg_text, parse_mode="Markdown")
+    except Exception as e:
+        log.error(e)
     return web.json_response({"status": "success"})
 
 async def check_user(request):
@@ -333,14 +336,15 @@ async def register_user(request):
             {"$set": {"phone": data.get("phone"), "name": data.get("name"), "registered_at": datetime.datetime.now()}},
             upsert=True
         )
-    except Exception as e: log.error(e)
+    except Exception as e:
+        log.error(e)
     return web.json_response({"status": "success"})
 
 async def health(request):
     return web.Response(text="OK")
 
 async def webhook(request):
-    if SECRET and request.headers.get("X-Telegram-Bot-Api-Secret-Token") != SECRET:
-        return web.Response(status=403)
-    data = await request.json()
-    await app.update_queue.put(Update.de_json(data, app.
+    if SECRET:
+        header = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
+        if header != SECRET:
+          
